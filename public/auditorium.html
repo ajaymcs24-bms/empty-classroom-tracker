@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auditorium</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      text-align: center;
+      padding-top: 90px;
+      margin: 0;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    .navbar h2 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .logout-btn {
+      background-color: white;
+      color: #007BFF;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: #0056b3;
+      color: white;
+    }
+
+    .block-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 50px;
+    }
+
+    .block {
+      width: 220px;
+      height: 130px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 130px;
+      color: #333;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .block:hover {
+      background-color: #007BFF;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin: 15px;
+      padding: 10px 18px;
+      background: #1e90ff;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .back-btn:hover {
+      background: #0c74d4;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="navbar">
+    <h2>BMSCE - Auditorium</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <a id="backBtn" class="back-btn">← Back to Blocks</a>
+
+  <h1>Select Auditorium</h1>
+
+  <div class="block-container">
+    <a class="block" href="audi-booking.html?audi=Audi1">Audi 1</a>
+    <a class="block" href="audi-booking.html?audi=Audi2">Audi 2</a>
+  </div>
+
+  <script>
+   
+  // ✅ Backend logout (NO localStorage)
+  function logout() {
+    window.location.href = "/auth/logout";
+  }
+
+  // ✅ Role-based Back button (Faculty / Student)
+  fetch("/auth/me", {
+    credentials: "include"
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Not logged in");
+      return res.json();
+    })
+    .then(user => {
+      document.getElementById("backBtn").href =
+        user.role === "faculty"
+          ? "blocks-dashboard.html?action=take"
+          : "blocks-dashboard.html?action=view";
+    })
+    .catch(() => {
+      window.location.href = "index.html";
+    });
+</script>
+
+  
+</script>
+
+  </script>
+
+</body>
+</html>
