@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audi Booking</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      text-align: center;
+      padding-top: 90px;
+      margin: 0;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    .navbar h2 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .logout-btn {
+      background-color: white;
+      color: #007BFF;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: #0056b3;
+      color: white;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin: 15px;
+      padding: 10px 18px;
+      background: #1e90ff;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .slot {
+      background:white;
+      width:330px;
+      margin:12px auto;
+      padding:12px;
+      border-radius:8px;
+      font-size:17px;
+      font-weight:bold;
+      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+      cursor:pointer;
+    }
+
+    .booked {
+      background:#e63946;
+      color:white;
+    }
+
+    .available {
+      background:#2a9d8f;
+      color:white;
+    }
+
+    .available:hover {
+      background:#21867a;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="navbar">
+    <h2 id="title">Audi Booking</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <a id="backBtn" class="back-btn">← Back to Auditorium</a>
+
+  <h2>Select Date</h2>
+  <input type="date" id="datePicker" onchange="loadSlots()">
+
+  <h2>Slots</h2>
+  <div id="slotList"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const audi = params.get("audi");
+
+    if (!audi) {
+      alert("Invalid access!");
+      window.location.href = "auditorium.html";
+    }
+
+    document.getElementById("title").textContent = `${audi} Booking`;
+
+    // ✅ Secure role + session check
+    let userRole = null;
+
+    fetch("/auth/me")
+      .then(res => {
+        if (!res.ok) throw new Error("Not logged in");
+        return res.json();
+      })
+      .then(user => {
+        userRole = user.role;
+        document.getElementById("backBtn").href =
+          user.role === "faculty"
+            ? "auditorium.html"
+            : "auditorium.html";
+      })
+      .catch(() => {
+        window.location.href = "index.html";
+      });
+
+    async function loadSlots() {
+      const date = document.getElementById("datePicker").value;
+      if (!date) return;
+
+      const res = await fetch(`/api/audi?audi=${audi}&date=${date}`, {
+        credentials: "include"   // ✅ VERY IMPORTANT
+    });
+
+
+      if (!res.ok) {
+        alert("Session expired. Please login again.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const slots = await res.json();
+      const slotList = document.getElementById("slotList");
+      slotList.innerHTML = "";
+
+      slots.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "slot " + (s.booked ? "booked" : "available");
+        div.innerText = s.booked
+          ? `${s.slot} (Booked by: ${s.bookedBy})`
+          : s.slot;
+
+        div.onclick = () => handleSlotClick(date, s.slot, s.booked);
+        slotList.appendChild(div);
+      });
+    }
+
+    async function handleSlotClick(date, slot, isBooked) {
+      if (!date) return alert("Please select a date first");
+
+      // ✅ Students cannot book or cancel
+      if (userRole !== "faculty") {
+        alert("Students can only view bookings!");
+        return;
+      }
+
+      if (!isBooked) {
+        const ok = confirm(`Do you want to book this slot?\n${slot}`);
+        if (!ok) return;
+
+        const res = await fetch("/api/audi/book", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ audi, date, slot })
+    });
+
+        const text = await res.text();
+
+        if (text === "BOOKED") alert("Slot booked successfully!");
+        else if (text === "ALREADY_BOOKED") alert("Already booked!");
+        else if (res.status === 403) alert("Only faculty can book!");
+
+      } else {
+        const ok = confirm(`Do you want to cancel this booking?\n${slot}`);
+        if (!ok) return;
+
+        const res = await fetch("/api/audi/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials:"include",
+          body: JSON.stringify({ audi, date, slot })
+        });
+
+        const text = await res.text();
+
+        if (text === "CANCELLED") alert("Booking cancelled!");
+        else if (text === "NOT_ALLOWED") alert("You cannot cancel others booking!");
+      }
+
+      loadSlots();
+    }
+
+    function logout() {
+      window.location.href = "/auth/logout";
+    }
+  </script>
+
+</body>
+</html>
