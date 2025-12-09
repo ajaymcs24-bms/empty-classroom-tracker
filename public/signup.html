@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Empty Classroom Tracker - Signup</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      text-align: center;
+      padding-top: 140px;
+      margin: 0;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      padding: 10px 0;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .navbar h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .signup-box {
+      background: white;
+      display: inline-block;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 320px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      display: block;
+      width: 250px;
+      margin: 10px auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .role-box {
+      margin: 10px 0;
+      font-size: 15px;
+    }
+
+    .role-box label {
+      margin: 0 10px;
+      font-weight: bold;
+    }
+
+    button {
+      background-color: #007BFF;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-size: 15px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    a {
+      color: #007BFF;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="navbar">
+    <h2>BMSCE - Empty Classroom Tracker</h2>
+  </header>
+
+  <div class="signup-box">
+    <h1>Create Account</h1>
+
+    <input type="text" id="name" placeholder="Full Name" />
+    <input type="text" id="email" placeholder="Email (abc@bmsce.ac.in)" />
+    <input type="password" id="password" placeholder="Password" />
+
+    <div class="role-box">
+      <p>Select Role:</p>
+      <label>
+        <input type="radio" name="role" value="faculty" /> Faculty
+      </label>
+      <label>
+        <input type="radio" name="role" value="student" /> Student
+      </label>
+    </div>
+
+    <button onclick="signup()">Sign Up</button>
+
+    <p style="margin-top: 15px;">
+      Already have an account?
+      <a href="index.html">Login</a>
+    </p>
+  </div>
+
+  <footer>
+    © 2025 BMS College of Engineering | All Rights Reserved
+  </footer>
+
+  <script>
+    async function signup() {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const roleRadio = document.querySelector("input[name='role']:checked");
+
+      if (!name || !email || !password || !roleRadio) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      const role = roleRadio.value;
+
+      const res = await fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, email, password, role })
+      });
+
+      const text = await res.text();
+
+      if (text === "Signup Success") {
+        alert("Account created successfully! Please login.");
+        window.location.href = "index.html";
+      } else {
+        alert(text);
+      }
+    }
+  </script>
+
+</body>
+</html>
