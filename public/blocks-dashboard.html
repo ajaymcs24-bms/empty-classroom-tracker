@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Select Block</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6;
+      text-align: center;
+      padding-top: 80px;
+      margin: 0;
+    }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 25px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .block-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 25px;
+    }
+
+    .block {
+      width: 200px;
+      height: 120px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      line-height: 120px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .block:hover {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    a.back {
+      display: block;
+      margin-top: 40px;
+      color: #007BFF;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h2>BMSCE - Select Block</h2>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<h1>Select a Block</h1>
+
+<div class="block-container" id="blocks"></div>
+
+<a id="backBtn" class="back">⬅ Back</a>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const action = params.get("action"); // ✅ take OR view
+
+// ✅ If action missing → invalid
+if (!action) {
+  alert("Invalid Access!");
+  window.location.href = "index.html";
+}
+
+// ✅ Block list (NO extra spaces)
+const blocks = [
+  "PG Block",
+  "APS Block",
+  "Science Block",
+  "Mechanical Block",
+  "PJ Block"
+];
+
+const container = document.getElementById("blocks");
+
+// ✅ Auto-generate correct links
+blocks.forEach(block => {
+  const a = document.createElement("a");
+  a.className = "block";
+  a.innerText = block;
+  a.href = `rooms.html?block=${encodeURIComponent(block)}&action=${action}`;
+  container.appendChild(a);
+});
+
+// ✅ Auditorium link ALSO with action
+const audi = document.createElement("a");
+audi.className = "block";
+audi.innerText = "Auditorium";
+audi.href = `auditorium.html?action=${action}`;
+container.appendChild(audi);
+
+// ✅ Session check + Back button
+fetch("/auth/me", { credentials: "include" })
+.then(res => res.json())
+.then(user => {
+  document.getElementById("backBtn").href =
+    user.role === "faculty"
+      ? "faculty-dashboard.html"
+      : "student-dashboard.html";
+})
+.catch(() => {
+  window.location.href = "index.html";
+});
+
+function logout() {
+  window.location.href = "/auth/logout";
+}
+</script>
+
+</body>
+</html>
