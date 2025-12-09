@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rooms</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin:0;
+  padding-top:80px;
+  background:#f3f4f6;
+  text-align:center;
+}
+
+.navbar {
+  position:fixed;
+  top:0;
+  width:100%;
+  background:#007BFF;
+  color:white;
+  padding:12px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logout-btn {
+  background:white;
+  color:#007BFF;
+  border:none;
+  padding:8px 14px;
+  border-radius:5px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.floor {
+  margin:30px auto;
+}
+
+.rooms {
+  display:grid;
+  grid-template-columns:repeat(5,90px);
+  gap:15px;
+  justify-content:center;
+}
+
+.room {
+  height:90px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  color:white;
+  cursor:pointer;
+  position:relative;
+}
+
+.empty { background:#2ecc71; }
+.occupied { background:#e74c3c; }
+
+.timer {
+  position:absolute;
+  top:5px;
+  right:5px;
+  font-size:11px;
+  background:rgba(0,0,0,0.6);
+  padding:3px 6px;
+  border-radius:8px;
+}
+
+.back {
+  display:block;
+  margin:40px;
+  font-weight:bold;
+  color:#007BFF;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h3 id="blockName"></h3>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div id="floors"></div>
+<a id="backBtn" class="back">⬅ Back</a>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const block = params.get("block");
+const action = params.get("action");
+
+if (!block || !action) {
+  alert("Invalid Access!");
+  window.location.href = "blocks-dashboard.html";
+}
+
+document.getElementById("blockName").innerText = block;
+
+function formatTime(ms) {
+  const m = String(Math.floor(ms / 60000)).padStart(2,"0");
+  const s = String(Math.floor((ms % 60000)/1000)).padStart(2,"0");
+  return `${m}:${s}`;
+}
+
+async function loadRooms() {
+  const res = await fetch(`/api/rooms?block=${encodeURIComponent(block)}`, {
+    credentials:"include"
+  });
+
+  if (!res.ok) {
+    alert("Session expired. Login again.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const data = await res.json();
+  const container = document.getElementById("floors");
+  container.innerHTML = "";
+
+  Object.keys(data).forEach(floor => {
+    const div = document.createElement("div");
+    div.className = "floor";
+    div.innerHTML = `<h2>${floor}</h2><div class="rooms"></div>`;
+
+    const grid = div.querySelector(".rooms");
+
+    data[floor].forEach(room => {
+      const r = document.createElement("div");
+      r.className = `room ${room.status}`;
+      r.innerText = room.roomNum;
+
+      if (room.status === "occupied" && room.endTime) {
+        const t = document.createElement("div");
+        t.className = "timer";
+        r.appendChild(t);
+
+        const interval = setInterval(() => {
+          const left = room.endTime - Date.now();
+          if (left <= 0) {
+            clearInterval(interval);
+            loadRooms();
+          } else {
+            t.innerText = formatTime(left);
+          }
+        }, 1000);
+      }
+
+      r.onclick = () => handleClick(floor, room);
+      grid.appendChild(r);
+    });
+
+    container.appendChild(div);
+  });
+}
+
+async function handleClick(floor, room) {
+  if (action === "view") {
+    alert(`Room ${room.roomNum} is ${room.status.toUpperCase()}`);
+    return;
+  }
+
+  // 🔹 Do NOT block here based only on status.
+  // Backend will check who marked it.
+
+  const message =
+    room.status === "empty"
+      ? `Mark Room ${room.roomNum} as OCCUPIED for 55 minutes?`
+      : `Do you want to clear your class in Room ${room.roomNum}?`;
+
+  if (!confirm(message)) return;
+
+  const res = await fetch("/api/rooms/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ block, floor, roomNum: room.roomNum })
+  });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    alert(text); // e.g. "This room is already taken by another faculty!"
+    return;
+  }
+
+  loadRooms();
+}
+
+// ✅ BACK BUTTON BASED ON ROLE
+fetch("/auth/me",{ credentials:"include" })
+.then(r=>r.json())
+.then(u=>{
+  document.getElementById("backBtn").href =
+    u.role==="faculty"
+    ? "blocks-dashboard.html?action=take"
+    : "blocks-dashboard.html?action=view";
+});
+
+function logout() {
+  window.location.href="/auth/logout";
+}
+
+loadRooms();
+</script>
+
+</body>
+</html>
